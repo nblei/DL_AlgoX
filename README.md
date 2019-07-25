@@ -2,7 +2,7 @@
 
 ## Usage
 
-struct dlinks itself is small and can be allocated safely on the stack.
+`struct dlinks` itself is small and can be allocated safely on the stack.
 Pass a pointer to a struct dlinks to dl_init, along with an integer, `N`, representing the size of the universe set,
 a `char ** subsets` which is an array of `char` pointers (not strings), each of length `N`, such that
 `subsets[i][j] = 1` indicates that the `i`'th set contains element `j` of the universe set, and
