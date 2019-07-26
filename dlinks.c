@@ -18,6 +18,9 @@ dl_cover_col(struct dl_node * chead);
 static void
 dl_uncover_col(struct dl_node * chead);
 
+static void
+_dl_algoX(struct dlinks *dl);
+
 
 int
 dl_init(struct dlinks * dl, int N, char **subsets, int nsubs)
@@ -26,8 +29,12 @@ dl_init(struct dlinks * dl, int N, char **subsets, int nsubs)
     // header row.  All pointers initialized to NULL by calloc
     dl->nodes = NULL; dl->header_sizes = NULL;
     dl->nodes = calloc((nsubs + 1) * N, sizeof(*dl->nodes));
+    dl->N = N;
+    dl->nsubs = nsubs;
+    dl->set_vec.vec = malloc(sizeof(*(dl->set_vec.vec)) * dl->nsubs);
     dl->header_sizes = calloc(N, sizeof(*dl->header_sizes));
-    if ((dl->header_sizes == NULL) || (dl->nodes == NULL)) {
+    if ((dl->header_sizes == NULL) || (dl->nodes == NULL) ||
+            (dl->set_vec.vec == NULL)) {
         perror("calloc"); goto fail_allocate;
     }
 
@@ -97,18 +104,38 @@ dl_init(struct dlinks * dl, int N, char **subsets, int nsubs)
 
     return 0;
 fail_allocate:
-    free(dl->header_sizes);
-    free(dl->nodes);
+    dl_free(dl);
     return -1;
 }
 
 
 void
-dl_algoX(struct dlinks *dl, int k)
+dl_free(struct dlinks *dl)
+{
+    free(dl->header_sizes);
+    free(dl->nodes);
+    free(dl->set_vec.vec);
+}
+
+
+void
+dl_algoX(struct dlinks *dl, void (*cover_cb)(struct dlinks *, void *),
+        void * cb_arg)
+{
+    dl->cb_arg = cb_arg;
+    dl->cover_cb = cover_cb;
+    // Clear set vec
+    dl->set_vec.size = 0;
+    _dl_algoX(dl);
+}
+
+void
+_dl_algoX(struct dlinks *dl)
 {
     if (dl->h.right == &dl->h) {
         dl->sols_len += 1;
-        //dl_add_sol(dl);
+        if (NULL != dl->cover_cb)
+            dl->cover_cb(dl, dl->cb_arg);
         return;
     }
     struct dl_node * const colh = dl_choose_col(dl);
@@ -118,6 +145,10 @@ dl_algoX(struct dlinks *dl, int k)
     struct dl_node * colptr = colh->down;
     for (; colptr != colh; colptr = colptr->down) {
         assert(colptr != NULL);
+        
+        // Push set to end of vector
+        int set_idx = colptr->row - 1;
+        dl->set_vec.vec[dl->set_vec.size++] = set_idx;
         struct dl_node * other_col = colptr->right;
         for (; other_col != colptr; other_col = other_col->right) {
             // Cover other column
@@ -125,12 +156,14 @@ dl_algoX(struct dlinks *dl, int k)
             dl_cover_col(&dl->nodes[other_col->col]);
         }
         // Recurse!
-        dl_algoX(dl, k+1);
+        _dl_algoX(dl);
         other_col = colptr->right;
         for (; other_col != colptr; other_col = other_col->right) {
             // Uncover other column
             dl_uncover_col(&dl->nodes[other_col->col]);
         }
+        // Pop set from end of vector
+        dl->set_vec.size--;
     }
     // Uncover colh
     dl_uncover_col(colh);
@@ -193,6 +226,23 @@ dl_idx(struct dlinks * dl, int row, int col)
 }
 
 #include <alloca.h>
+
+
+void
+print_cb(struct dlinks * dl, void * v)
+{
+    char **s = (char **)v;
+    printf("Subsets:\n\t");
+    for (int i = 0; i < dl->set_vec.size; ++i) {
+        printf("(");
+        for (int j = 0; j < 3; ++j) {
+            printf("%d", s[dl->set_vec.vec[i]][j]);
+        }
+        printf(")\n\t");
+    }
+    printf("\n");
+}
+
 int main(void)
 {
     char ** sets = alloca(5 * sizeof(*sets));
@@ -211,7 +261,7 @@ int main(void)
 
     struct dlinks dlink;
     dl_init(&dlink, 3, sets, 5);
-    dl_algoX(&dlink, 0);
-    printf("%lu\n", dlink.sols_len);
+    dl_algoX(&dlink, print_cb, sets);
+    dl_free(&dlink);
     return 0;
 }
