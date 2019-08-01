@@ -16,7 +16,8 @@ this implementation uses only a single `struct dl_node` structure to represent c
 memory is so readily available, and this problem is in NP-Complete and PSPACE, it makes sense to 
 trade a small amount of additional
 space for a large increase in ease of programming, and memory management 
-(indeed, as the Dancing Links are allocated at initialization as a one dimensional array, this likely leads to an increase
+(additionally, as the Dancing Links are allocated at initialization as a one dimensional array,
+this likely leads to an increase
 of performance due to cache considerations).
 
 In addition to the node structure, there is `struct dlinks` which contains all of the metadata to run
