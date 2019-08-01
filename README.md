@@ -6,7 +6,7 @@ This implementation uses
 space, where `N` is the size of the universe set, and `M` is the number of subsets
 considered.  The exact cover problem is NP-Complete and takes time exponential in the number of subsets.
 
-This implementation is single-threaded (if you know of any multi-threaded implementations of algorithm-X, let me,
+This implementation is single-threaded (if you know of any multi-threaded implementations of algorithm-X, let me know,
 I'd love to see them).
 
 ## Structure
